@@ -8,7 +8,7 @@ using CoefHelpers
 using LinearAlgebra
 
 export Grid, carttosphere, mcoef!, lcoef!, getparticledict
-export evallocalpotential, evaldirectpotential, evalmultipolepotential
+export localatpoints!, directatpoints!, multipoleatpoints!
 
 mutable struct Grid
     """
@@ -17,7 +17,7 @@ mutable struct Grid
     fields:
     """
     boxes::Dict{Int64,Box}
-    particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}
+    particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}}
     numparticles::Int64
     levels::Dict{Int64,Set{Int64}}
     numlevels::Int64
@@ -30,7 +30,7 @@ mutable struct Grid
     function Grid()
         this = new()
         this.boxes = Dict{Int64,Box}()
-        this.particles = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}()
+        this.particles = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}}()
         this.numparticles = 0
         this.levels = Dict{Int64,Set{Int64}}()
         this.numlevels = 0
@@ -55,7 +55,8 @@ function carttosphere(particleid::Int64, box1::Box, grid::Grid)
     with respect to the center of box1.
 
     inputs:
-        particles: a dictionary of particles in the grid.
+
+    preconditions: particleid is a key in particles.
     returns: a triple of the spherical coordinates of the particles with
         respect to the center of box1.
     """
@@ -148,82 +149,86 @@ function getparticledict(box::Box, grid::Grid)
     """
     particleids = box.particles
     len = length(particleids)
-    particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}()
+    particledict = particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}}()
     for particleid in particleids
         particledict[particleid] = grid.particles[particleid]
     end
     return particledict
 end
 
-function evallocalpotential(box::Box, grid::Grid, p::Int64)
+function localatpoints!(box::Box, grid::Grid, p::Int64)
     """
-    Calculates the potential at each charge in box from box's local expansion
-    """
-    particles = getparticledict(box,grid)
+    Updates the potential for all particles in box by including contributions
+    from box's local expansion.
 
+    """
     ns,ms = spherical_harmonic_indices(p)
     len = length(ns)
     ρs = ones(len)
 
     Lmn = box.local_coef
-    ψ = 0
-    particleids = keys(particles)
-    for particleid in particleids
+    for particleid in box.particles
+        ψ = 0
         ρ, θ, ϕ = carttosphere(particleid, box, grid)
         ρn = (ρ * ρs).^ns
         Ynm = spherical_harmonics(p, θ, ϕ)
         terms = ρn .* Ynm
-        ψ += Lmn' * terms
+        ψ = Lmn' * terms
+        coords,q,ϕ = grid.particles[particleid]
+        vals = (coords, q, ϕ + ψ)
+        grid.particles[particleid] = vals
     end
 
-    return ψ
 end #evalpotential
 
-function evaldirectpotential(box::Box, grid::Grid, p::Int64,
-    particledict::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}})
+function directatpoints!(box1::Box, box2::Box, grid::Grid, p::Int64)
+    """"
+    Updates the potential for all particles in box1 by including directly
+    calculated contributions from box2.
     """
-    Calculates the potential at particles in box due to particles in
-    particledict
-    """
-    boxparticledict = getparticledict(box,grid)
-    ϕ = 0
-    for boxparticleid in keys(boxparticledict)
-        for particleid in keys(particledict)
-            if particleid != boxparticleid
-                coordsj = boxparticledict[boxparticleid][1]
-                coordsi = particledict[particleid][1]
-                qi = particledict[particleid][2]
-                den = norm(coordsj.-coordsi)
-                ϕ += qi/den
-            end
+
+    particleids = box1.particles
+    lparticleids = box2.particles
+
+    for particleid in particleids
+        for lparticleid in lparticleids
+                if particleid != lparticleids
+                    coordsj = grid.particles[particleid][1]
+                    coordsi = grid.particles[lparticleid][1]
+                    qi = grid.particles[lparticleid][2]
+                    den = norm(coordsj.-coordsi)
+                    coords,q,ϕ = grid.particles[particleid]
+                    vals = (coords, q, ϕ + qi/den)
+                    grid.particles[particleid] = vals
+                end
         end
     end
 
-    return ϕ
-end
+end #function
 
-function evalmultipolepotential(box1::Box, box2::Box, grid::Grid, p::Int64)
+function multipoleatpoints!(box1::Box, box2::Box, grid::Grid, p::Int64)
     """
-    Calculates the potential at each charge in box1 from box2's multipole expansion
-    coefficients
+    Updates the potential for all particles in box1 by including contributions
+    from box2's multipole expansion.
     """
     ns,ms = spherical_harmonic_indices(p)
     len = length(ns)
     ρs = ones(len)
 
     Mmn = box2.multi_coef
-    particles = getparticledict(box1,grid)
-
-    ϕ = 0
+    particles = box1.particles
     for particleid in particles
+        ψ = 0
         ρ, θ, ϕ = carttosphere(particleid, box1, grid)
         ρn = (ρ * ρs).^(ns + 1)
         Ynm = spherical_harmonics(p, θ, ϕ)
         terms = ρn .* Ynm
-        ϕ += Mmn' * terms
+        ψ = Mmn' * terms
+        coords,q,ϕ = grid.particles[particleid]
+        vals = (coords, q, ϕ + ψ)
+        grid.particles[particleid] = vals
     end
 
-    return ϕ
 end #evalpotential
 
 end  # module GridStruct

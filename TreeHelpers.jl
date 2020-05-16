@@ -24,7 +24,7 @@ function colleagues!(box1::Box, leveldict::Dict{Int64,Set{Int64}},
     end
 end
 
-function domainBounds(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}})
+function domainBounds(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}})
     """
     This function can be used to determine a box containing all particles in
     a given particle dictionary.

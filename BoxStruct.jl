@@ -104,7 +104,7 @@ function areadjacent(box1::Box, box2::Box)
     return !(checkX || checkY || checkZ)
 end
 
-function particlesin(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}},
+function particlesin(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}},
         box1::Box)
         """
         """
@@ -249,7 +249,7 @@ end
 
 function lcoefsum!(box1::Box, coefficients::Vector{ComplexF64}, p::Int64)
     """
-    Add some local expansion coefficients to the local coefficients of box1.
+    Add local expansion coefficients, "coefficients", to the local coefficients of box1.
     """
     # Add coefficients from coefvec to box1's local expansion coefficients
     box1.local_coef .+= coefficients

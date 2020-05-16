@@ -8,7 +8,7 @@ using ListConstructors
 using OctreeConstructor
 using CoefHelpers
 
-function step0(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}},
+function step0(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}},
     nmin::Int64)
     """
     Build Tree Structure and create Lists
@@ -142,87 +142,79 @@ function step6(grid::Grid, p::Int64)
     """
     Evaluate Potentials, Step 6
 
-    Calculate the sum of all local contributions in each leaf box.
+    Calculate local contributions on finest level for each particle.
     """
-    ψ = 0
-    boxids = keys(grid.boxes)
-    for boxid in boxids
+
+    for boxid in keys(grid.boxes)
         box = grid.boxes[boxid]
         if !haschildren(box)
-            ψ += evallocalpotential(box, grid, p)
+            localatpoints!(box, grid, p)
         end
     end
-    return ψ
+
 end # step 6
 
 function step7(grid::Grid, p::Int64)
     """
     Evaluate Potentials, Step 7
 
-    Calculate near neighbor contributions directly.
+    Calculate near neighbor contributions on finest level at each particle directly.
     """
-    ψ = 0
-    boxids = keys(grid.boxes)
-    for boxid in boxids
+
+    for boxid in keys(grid.boxes)
         box = grid.boxes[boxid]
-        particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}()
         if !haschildren(box)
-            L1boxids = box.L1
-            for L1boxid in L1boxids
+            for L1boxid in box.L1
                 L1box = grid.boxes[L1boxid]
-                L1boxparticledict = getparticledict(L1box, grid)
-                particledict = merge(particledict,L1boxparticledict)
+                directatpoints!(box, L1box, grid, p)
             end
-            ψ += evaldirectpotential(box, grid, p, particledict)
         end
     end
 
-    return ψ
 end # step 7
 
 function step8(grid::Grid, p::Int64)
     """
     Evaluate Potentials, Step 8
 
-    Calculate nearest neighbor contributions directly.
+    Calculate semi-near neighbor multipole or direct contributions on finest level
+    at each particle.
     """
-    ϕ = 0
     for boxid in keys(grid.boxes)
         box = grid.boxes[boxid]
-        particledict = Dict()
         if !haschildren(box)
-            L3boxids = box.L3
-            for L3boxid in L3boxids
+            for L3boxid in box.L3
                 L3box = grid.boxes[L3boxid]
-                L3boxparticledict = getparticledict(L3box, grid)
-                if length(L3boxparticledict) > p^2
-                    ϕ += evalmultipolepotential(box,L3box,grid,p)
+                if length(L3box.particles) > p^2
+                    multipoleatpoints!(box,L3box,grid,p)
                 else
-                    ϕ += evaldirectpotential(box, grid, p, L3boxparticledict)
+                    directatpoints!(box,L3box,grid,p)
                 end
             end
         end
     end
 
-    return ϕ
 end # step 8
 
 function FMM3D(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}},
     p::Int64, nmin::Int64)
      """
      """
-     grid = step0(particles,nmin)
+     particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}}()
+     for (key,value) in particles
+         coords = value[1]
+         q = value[2]
+         particledict[key] = (coords,q,0.0)
+     end
+     grid = step0(particledict,nmin)
      step1(grid,p)
      step2(grid,p)
      step3(grid,p)
      step4(grid,p)
      step5(grid,p)
-     ψ1 = step6(grid,p)
-     ϕ2 = step7(grid,p)
-     ϕ3 = step8(grid,p)
-
-     Φ = ψ1 + ϕ2 + ϕ3
-     println(Φ)
+     step6(grid,p)
+     step7(grid,p)
+     step8(grid,p)
 end
 
 particles = Dict([(1,((0.24,0.22,0.26),3.0)),(2,((0.72,0.76,0.72),4.0)),

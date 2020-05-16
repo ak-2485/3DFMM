@@ -1,6 +1,6 @@
 
 using Test
-using CoefHelpers
+using CoefHelpers, GridStruct
 
 function sphericalHarmonicsTest()
     α = 0.5*1/sqrt(pi)
@@ -46,3 +46,7 @@ function sphericalHarmonicsTest()
 end
 
 sphericalHarmonicsTest()
+
+function mcoefTest()
+    
+end
