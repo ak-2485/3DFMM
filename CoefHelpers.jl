@@ -8,14 +8,9 @@ export lm_to_spherical_harmonic_index, lmk_to_wigner_index
 """
 """
 # https://github.com/JuliaWaveScattering/EffectiveWaves.jl/blob/master/src/specialfunctions.jl
-function spherical_harmonic_indices(lmax::Int, rev::Bool=false)
+function spherical_harmonic_indices(lmax::Int)
     ls = [l for l in 0:lmax for m in -l:l]
     ms = [m for l in 0:lmax for m in -l:l]
-
-    if rev
-        ls = [l for l in 0:lmax for m in l:-1:-l]
-        ms = [m for l in 0:lmax for m in l:-1:-l]
-    end
 
     return ls, ms
 end
@@ -29,49 +24,33 @@ end
 
 lm_to_spherical_harmonic_index(l::Int,m::Int)::Int = l^2 + m + l + 1
 
-function spherical_harmonics_theta(lmax::Int, θ::Float64, rev::Bool=false)
+function spherical_harmonics(l_max::Int, θ::T, φ::T) where T <: AbstractFloat
     """
+    `spherical_harmonics(l_max::Int, θ::T, φ::T)`
+    returns a vector of all spherical harmonics with degree `l <= l_max`.
+    The degree and order (indices) of the elements of the vector are given by
+    `spherical_harmonics_indices(l_max::Int)`.
+    The associated legendre polynomials are taken from the package GSL.jl.
     """
-    ls, ms = associated_legendre_indices(lmax)
-    Plm_arr = sf_legendre_array(GSL_SF_LEGENDRE_SPHARM, lmax, cos(θ))[1:length(ls)]
 
-    Ylm_vec = Vector{Complex{Float64}}(undef, (lmax+1)^2)
+    ls, ms = associated_legendre_indices(l_max)
+    factor = 1/sqrt(2) * sqrt(4*pi) .* (((2 .*ls) .+ 1).^(-0.5))
+    Plm_arr = factor .* sf_legendre_array(GSL_SF_LEGENDRE_SPHARM, l_max, cos(θ))[1:length(ls)]
+
+    Ylm_vec = Vector{Complex{T}}(undef, (l_max+1)^2)
     Ylm_vec[1] = Plm_arr[1]
 
     ind1 = 1
     ind2 = 1
-    for i = 1:lmax
-        inds1 = (ind1+i):(ind1+2*i)
-        if rev
-            Ylm_vec[(ind2+i):(ind2+3i)] = [Plm_arr[inds1[2:end]]; Plm_arr[inds1[1]]; reverse((-1).^ms[inds1[2:end]] .* conj(Plm_arr[inds1[2:end]]))]
-        else
-            Ylm_vec[(ind2+i):(ind2+3i)] = [reverse((-1).^ms[inds1[2:end]] .* conj(Plm_arr[inds1[2:end]])); Plm_arr[inds1]]
-        end
+    for i = 1:l_max
+        inds1 = (ind1+i):(ind1+2i)
+        Ylm_vec[(ind2+i):(ind2+3i)] = [reverse((-1).^ms[inds1[2:end]] .* conj(Plm_arr[inds1[2:end]])); Plm_arr[inds1]]
         ind1 += i
-        ind2 += 2*i
+        ind2 += 2i
     end
 
-    return Ylm_vec
-end
-
-
-function spherical_harmonics(lmax::Int, θ::Float64, φ::Float64, rev::Bool=false)
-    """
-    `spherical_harmonics(lmax::Int, θ::T, φ::T)`
-    returns a vector of all spherical harmonics with degree `l <= lmax`. The degree
-    and order (indices) of the elements of the vector are given by
-    `spherical_harmonic_indices(lmax::Int)`.
-    The associated legendre polynomials are taken from the package GSL.jl.
-    """
-    if rev
-        Ylm_vecθ  = spherical_harmonics_theta(lmax,θ,true)
-        ls, ms = spherical_harmonic_indices(lmax, true)
-    else
-        Ylm_vecθ = spherical_harmonics_theta(lmax,θ)
-        ls, ms = spherical_harmonic_indices(lmax)
-    end
-
-    Ylm_vec = exp.(ms .* (im*φ)) .* Ylm_vecθ
+    ls, ms = spherical_harmonic_indices(l_max)
+    Ylm_vec = exp.(ms .* (im*φ)) .* Ylm_vec
 
     return Ylm_vec
 end
@@ -104,13 +83,13 @@ function wigner_matrices(lmax::Int, θ::T) where T <: AbstractFloat
     len = length(ls)
     inds1 = 1:len
 
-    blm_vec = Vector{Complex{Float64}}(undef, len)
+    blm_vec = Vector{Complex{Float32}}(undef, len)
     num = (ls[inds1] .- ms[inds1] .- 1)*(ls[inds1] .- ms[inds1])
     den = (2ls[inds1] .- 1)*(2ls[inds1] .+ 1)
     bsqrtlsms = (num./den).^0.5
     blm_vec[inds1] = sgn(ms[inds1]) .* bsqrtlsms
 
-    alm_vec = Vector{Complex{Float64}}(undef, len)
+    alm_vec = Vector{Complex{Float32}}(undef, len)
     for i = inds1
         l = ls[i]
         m = ms[i]
@@ -129,7 +108,7 @@ function wigner_matrices(lmax::Int, θ::T) where T <: AbstractFloat
     ls, ks, ms = wigner_matrices_indices(2lmax)
     len = length(ls)
 
-    Hlkm_vec = Vector{Complex{Float64}}(undef, len)
+    Hlkm_vec = Vector{Complex{Float32}}(undef, len)
     for i = 1:len
         if ms[i] == 0
             ind1 = lkm_to_wigner_index(ls[i],ks[i],ms[i])

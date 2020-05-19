@@ -14,7 +14,7 @@ export octree
 function octree(Grid::Grid)
         """
         Build Tree Structure by refining the domain adaptively on boxes that contain
-        more than nmin particles.
+        more than nmax particles.
         input:
             points: a dictinoary of particles in the domain with particle
                 index, numbered (1...total-number-of-particles),
@@ -22,10 +22,10 @@ function octree(Grid::Grid)
             bounds: bounds of the computational domain, the first array index
                 is the least vertex point of the domain, the second array index
                 is the greatest vertex point of the domain.
-            nmin : boxes with fewer than nmin particles won't be refined.
+            nmax : boxes with fewer than nmax particles won't be refined.
         preconditions:
             bounds: a non-empty array of 2 non-empty arrays
-            nmin: must be greater than 1 for recursion to halt
+            nmax: must be greater than 1 for recursion to halt
         returns:
             leveldict : A dictionary with level number as key and box index as value
             boxdict : A dictionary with box index as key and box as value
@@ -54,8 +54,8 @@ function octree(Grid::Grid)
     Grid.boxes[0] = B
     Grid.levels[0] = Set(B.index)
     # Only divide if sufficient points are available
-    if B.numparticles < Grid.nmin return end
-    # Recursively divide the box
+    if B.numparticles <= Grid.nmax return end
+    # Recursively divide the box is it contains more than nmax particles
     function octreedivide(Parent::Box)
         """
 
@@ -63,7 +63,7 @@ function octree(Grid::Grid)
         returns : none
         """
         # If the refinement condition has been met, exit
-        if Parent.numparticles < Grid.nmin return end
+        if Parent.numparticles < Grid.nmax return end
         # If the level hasn't been visited, visit it
         if !(Parent.level in visited)
             levelacc += 1
@@ -73,6 +73,9 @@ function octree(Grid::Grid)
         # Recursively make babies
         Children = [Box() for i in 1:8]
         j = 1
+        # Create set to use for allocation of particles; to ensure particles
+        # is located in only one box
+        particledict = copy(Grid.particles)
         for child in Children
             child.size = 0.5 * Parent.size
             child.center = Parent.center + 0.5 * child.size * s[j]
@@ -81,7 +84,10 @@ function octree(Grid::Grid)
             end
             child.max_bound = child.vertices[5]
             child.min_bound = child.vertices[2]
-            child.particles = particlesin(Grid.particles,child)
+            child.particles = particlesin(particledict,child)
+            for particle in child.particles
+                pop!(particledict,particle)
+            end
             child.numparticles = length(child.particles)
             # Ignore empty children
             if child.numparticles > 0

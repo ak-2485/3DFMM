@@ -7,7 +7,7 @@ using CoefHelpers
 using GSL
 
 export Box, iscolleague, arewellseparated, areadjacent, particlesin, haschildren
-export mcoeftrans, mtolconversion, lcoefsum!, lcoeftrans
+export mcoeftrans, mtolconversion, lcoeftrans
 
 mutable struct Box
     """
@@ -32,14 +32,8 @@ mutable struct Box
     L2::Set{Int64}
     L3::Set{Int64}
     L4::Set{Int64}
-    uplist::Set{Int64}
-    downlist::Set{Int64}
-    northlist::Set{Int64}
-    southlist::Set{Int64}
-    eastlist::Set{Int64}
-    westlist::Set{Int64}
-    multipole_coef::Array{ComplexF64,1}
-    local_coef::Array{ComplexF64,1}
+    multipole_coef::Vector{Complex{Float64}}
+    local_coef::Vector{Complex{Float64}}
     function Box()
         this = new()
         this.center = zeros(Float64,1)
@@ -58,14 +52,8 @@ mutable struct Box
         this.L2 = Set{Int64}()
         this.L3 = Set{Int64}()
         this.L4 = Set{Int64}()
-        this.uplist = Set{Int64}()
-        this.downlist = Set{Int64}()
-        this.northlist = Set{Int64}()
-        this.southlist = Set{Int64}()
-        this.eastlist = Set{Int64}()
-        this.westlist = Set{Int64}()
-        this.multipole_coef = Array{ComplexF64,1}()
-        this.local_coef = Array{ComplexF64,1}()
+        this.multipole_coef = Vector{Complex{Float64}}()
+        this.local_coef = Vector{Complex{Float64}}()
         return this
     end
 end
@@ -113,8 +101,8 @@ function particlesin(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},
     maxBound = box1.max_bound
     for partid in keys(particles)
         (x,y,z) = particles[partid][1]
-        if x < maxBound[1] && y < maxBound[2] && z < maxBound[3] &&
-            x > minBound[1] && y > minBound[2] && z > minBound[3]
+        if x <= maxBound[1] && y <= maxBound[2] && z <= maxBound[3] &&
+            x >= minBound[1] && y >= minBound[2] && z >= minBound[3]
             push!(particleset,partid)
         end
     end
@@ -123,185 +111,124 @@ end
 
 function haschildren(box1::Box)
     """
+    Returns true if box1 has children.
     """
     return !isempty(box1.children)
 end
 
-function spherecenter(box::Box)
+function spherecenter(box::Box, origin::Array{Float64,1})
     """
-    Yields the spherical coordinates of the center of a box
+    Yields the spherical coordinates of the center of "box" with respect to the
+    point "origin"
     """
-    cx = box.center[1]
-    cy = box.center[2]
-    cz = box.center[3]
-    ρ = sqrt((cx)^2 + (cy)^2 + (cz)^2)
-    θ = atan((cy)/(cx))
-    ϕ = acos((cz)/ρ)
+    x = box.center[1]
+    y = box.center[2]
+    z = box.center[3]
+    cx = origin[1]
+    cy = origin[2]
+    cz = origin[3]
+    (x,y,z) = (x-cx,y-cy,z-cz)
+    ρxy = sqrt(x^2 + y^2)
+    ρxyz = sqrt(x^2 + y^2 + z^2)
+    ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
+    ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
 
-    return ρ, θ, ϕ
+    return ρxyz, θ, ϕ
 end
 
-function mcoeftrans(box1::Box, p::Int64)
+function anms(n::Int64,m::Int64)
     """
-    Return a vector of translated multipole coefficients of box1.
+    """
+    den = sqrt(factorial(big(n-m))*factorial(big(n+m)))
+
+    return 1/den
+end
+
+function mcoeftrans(box1::Box, box2::Box, p::Int64)
+    """
+    Returns a vector of multipole coefficients translated from box1 to box2.
     """
 
     ns,ms = spherical_harmonic_indices(p)
     len = length(ns)
-
-    Anm = zeros(ComplexF64,len)
-    for i = 1:len
-        ind = lm_to_spherical_harmonic_index(ns[i],ms[i])
-        n = ns[i]
-        m = ms[i]
-        den = sqrt(factorial(n-m)*factorial(n+m))
-        Anm[ind] = 1/den
-    end
-
     Onm = box1.multipole_coef
-    ρ,α,β = spherecenter(box1)
+    ρ,α,β = spherecenter(box1,box2.center)
     Ynm = spherical_harmonics(p,α,β)
-    #ρn = (ρ .* ones(len)).^ns
-
     Mjk = zeros(ComplexF64,len)
-    Ys = Vector{ComplexF64}()
-    As1 = Vector{ComplexF64}()
-    As2 = Vector{ComplexF64}()
-    Js = Vector{ComplexF64}()
-    Os = Vector{ComplexF64}()
-    ρn = Vector{ComplexF64}()
 
     for j = 0:p
         for k = -j:j
+            ind = lm_to_spherical_harmonic_index(j,k)
             for n = 0:j
                 for m = max(k+n-j,-n):min(k+j-n,n)
-                    ρn = [ρn; ρ^n]
-                    ind1 = lm_to_spherical_harmonic_index(n,-m)
-                    Ys = [Ys ; Ynm[ind1]]
                     ind2 = lm_to_spherical_harmonic_index(j-n,k-m)
-                    As1 = [As1 ; Anm[ind2]]
-                    Os = [Os; Onm[ind2]]
-                    ind3 = lm_to_spherical_harmonic_index(n,m)
-                    As2 = [As2 ; Anm[ind3]]
-                    jterm = (-1)^m
-                    Js = [Js ; jterm]
+                    ind3 = lm_to_spherical_harmonic_index(n,-m)
+                    num = Onm[ind2] * (-1)^m * anms(n,m) * anms(j-n,k-m) * ρ^n * Ynm[ind3]
+                    Mjk[ind] += num/anms(j,k)
                 end#ms
             end#ns
-            ind = lm_to_spherical_harmonic_index(j,k)
-            terms = Js .* As2 .* As1 .* ρn .* Ys
-            Mjk[ind] = (1/Anm[ind])*(Os' * terms)
         end#ks
     end#js
 
     return Mjk
 end #mcoeftrans
 
-function mtolconversion(box1::Box, p::Int64)
+function mtolconversion(box1::Box, box2::Box, p::Int64)
     """
-    Return a vector of the multipole coefficients for box1 converted to local
-    coefficients.
+    Return a vector of the multipole coefficients of box1 converted to local
+    coefficients centered at box2.
     """
-    ns,ms = spherical_harmonic_indices(2p)
-    len = length(ns)
-    sz = (p+1)^2
-
-    Anm = zeros(ComplexF64,len)
-    for i = 1:len
-        ind = lm_to_spherical_harmonic_index(ns[i],ms[i])
-        n = ns[i]
-        m = ms[i]
-        den = sqrt(factorial(n-m)*factorial(n+m))
-        Anm[ind] =1/den
-    end
-
-    Onm = box1.local_coef
-    ρ,α,β = spherecenter(box1)
+    Onm = box1.multipole_coef
+    ρ,α,β = spherecenter(box1, box2.center)
     Ynm = spherical_harmonics(2p,α,β)
 
-    Ljk = zeros(ComplexF64,sz)
-    Ys = Vector{ComplexF64}(undef,sz)
-    As1 = Vector{ComplexF64}(undef,sz)
-    As2 = Vector{ComplexF64}(undef,sz)
-    Js = Vector{ComplexF64}(undef,sz)
-    Os = Vector{ComplexF64}(undef,sz)
-    ρn = Vector{ComplexF64}(undef,sz)
+    Ljk = zeros(ComplexF64,(p+1)^2)
 
     for j = 0:p
         for k = -j:j
+            ind = lm_to_spherical_harmonic_index(j,k)
             for n = 0:p
                 for m = -n:n
                     ind1 = lm_to_spherical_harmonic_index(n,m)
-                    ρn[ind1] = ρ^-(j+n+1)
-                    Js[ind1] = (-1)^(n+k)
                     ind2 = lm_to_spherical_harmonic_index(j+n,m-k)
-                    Ys[ind1] = Ynm[ind2]
-                    As1[ind1] = 1/Anm[ind2]
+                    num = Onm[ind1] * (-1)^(n+k) * anms(n,m) * anms(j,k) * Ynm[ind2]
+                    den = anms(j+n,m-k) * ρ^(j+n+1)
+                    Ljk[ind] += num/den
                 end#ms
             end#ns
-            ind = lm_to_spherical_harmonic_index(j,k)
-            terms = Anm[1:sz] .* Anm[ind] .* Js .* As1 .* ρn .* Ys
-            Ljk[ind] = (Onm' * terms)
         end#ks
     end#js
 
     return Ljk
 end
 
-function lcoefsum!(box1::Box, coefficients::Vector{ComplexF64}, p::Int64)
-    """
-    Add local expansion coefficients, "coefficients", to the local coefficients of box1.
-    """
-    # Add coefficients from coefvec to box1's local expansion coefficients
-    box1.local_coef .+= coefficients
-end
 
-function lcoeftrans(box1::Box, p::Int64)
+function lcoeftrans(box1::Box, box2::Box, p::Int64)
     """
-    Return a vector of the translated local coefficients for box1.
+    Return a vector of the local coefficients for box1 translated to the center
+    of box2.
     """
     ns,ms = spherical_harmonic_indices(p)
     len = length(ns)
 
-    Anm = zeros(ComplexF64,len)
-    for i = 1:len
-        ind = lm_to_spherical_harmonic_index(ns[i],ms[i])
-        n = ns[i]
-        m = ms[i]
-        den = sqrt(factorial(n-m)*factorial(n+m))
-        Anm[ind] = 1/den
-    end
-
     Onm = box1.local_coef
-    ρ,α,β = spherecenter(box1)
+    ρ,α,β = spherecenter(box1, box2.center)
     Ynm = spherical_harmonics(p,α,β)
-    #ρn = (ρ .* ones(len)).^ns
 
     Ljk = zeros(ComplexF64,len)
-    Ys = Vector{ComplexF64}()
-    As1 = Vector{ComplexF64}()
-    As2 = Vector{ComplexF64}()
-    Js = Vector{ComplexF64}()
-    Os = Vector{ComplexF64}()
-    ρn = Vector{ComplexF64}()
 
     for j = 0:p
         for k = -j:j
+            ind = lm_to_spherical_harmonic_index(j,k)
             for n = j:p
                 for m = k-n+j:k-j+n
-                    ρn = [ρn; ρ^(n-j)]
                     ind1 = lm_to_spherical_harmonic_index(n-j,m-k)
-                    Ys = [Ys ; Ynm[ind1]]
-                    As1 = [As1 ; Anm[ind1]]
                     ind2 = lm_to_spherical_harmonic_index(n,m)
-                    Os = [Os; Onm[ind2]]
-                    As2 = [As2 ; 1/Anm[ind2]]
-                    jterm = (-1)^(n-j)
-                    Js = [Js ; jterm]
+                    num = Onm[ind2] * (-1)^(n-j) * anms(j,k) * anms(n-j,m-k) * ρ^(n-j) * Ynm[ind1]
+                    den = anms(n,m)
+                    Ljk[ind] += num/den
                 end#ms
             end#ns
-            ind = lm_to_spherical_harmonic_index(j,k)
-            terms = Js .* As2 .* As1 .* ρn .* Ys
-            Ljk[ind] = Anm[ind]*(Os' * terms)
         end#ks
     end#js
 
