@@ -34,8 +34,9 @@ function spherical_harmonics(l_max::Int, θ::T, φ::T) where T <: AbstractFloat
     """
 
     ls, ms = associated_legendre_indices(l_max)
-    factor = 1/sqrt(2) * sqrt(4*pi) .* (((2 .*ls) .+ 1).^(-0.5))
+    factor = sqrt(4*pi) .* (((2 .*ls) .+ 1).^(-0.5))
     Plm_arr = factor .* sf_legendre_array(GSL_SF_LEGENDRE_SPHARM, l_max, cos(θ))[1:length(ls)]
+    println(Plm_arr)
 
     Ylm_vec = Vector{Complex{T}}(undef, (l_max+1)^2)
     Ylm_vec[1] = Plm_arr[1]
@@ -44,13 +45,17 @@ function spherical_harmonics(l_max::Int, θ::T, φ::T) where T <: AbstractFloat
     ind2 = 1
     for i = 1:l_max
         inds1 = (ind1+i):(ind1+2i)
-        Ylm_vec[(ind2+i):(ind2+3i)] = [reverse((-1).^ms[inds1[2:end]] .* conj(Plm_arr[inds1[2:end]])); Plm_arr[inds1]]
+        println(inds1)
+        println(ms)
+        println(ms[inds1])
+        Ylm_vec[(ind2+i):(ind2+3i)] =
+        [reverse(conj(Plm_arr[inds1[2:end]])); Plm_arr[inds1]]
         ind1 += i
         ind2 += 2i
     end
 
     ls, ms = spherical_harmonic_indices(l_max)
-    Ylm_vec = exp.(ms .* (im*φ)) .* Ylm_vec
+    Ylm_vec = exp.(ms .* (im*abs(φ))) .* Ylm_vec
 
     return Ylm_vec
 end

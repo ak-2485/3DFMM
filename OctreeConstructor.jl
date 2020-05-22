@@ -63,7 +63,7 @@ function octree(Grid::Grid)
         returns : none
         """
         # If the refinement condition has been met, exit
-        if Parent.numparticles < Grid.nmax return end
+        if Parent.numparticles <= Grid.nmax return end
         # If the level hasn't been visited, visit it
         if !(Parent.level in visited)
             levelacc += 1

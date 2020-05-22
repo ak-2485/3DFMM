@@ -55,11 +55,14 @@ function sphcoords(particleid::Int64, grid::Grid)
 
     particle = grid.particles[particleid]
     (x,y,z) = particle[1]
-    ρ = sqrt((x)^2 + (y)^2 + (z)^2)
-    ϕ = atan((y)/(x))
-    θ = atan(sqrt((x)^2 + (y)^2)/(z))
+    ρxy = sqrt(x^2 + y^2)
+    ρxyz = sqrt(x^2 + y^2 + z^2)
+    ϕ = atan(y,x)
+    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
+    ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
+    #θ = atan(ρxy,z)
 
-    return ρ, θ, ϕ
+    return ρxyz, θ, ϕ
 
 end
 
@@ -83,8 +86,10 @@ function carttosphere(particleid::Int64, box1::Box, grid::Grid)
     (x,y,z) = (x-cx,y-cy,z-cz)
     ρxy = sqrt(x^2 + y^2)
     ρxyz = sqrt(x^2 + y^2 + z^2)
-    ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
+    ϕ = atan(y,x)
+    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
     ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
+    #θ = atan(ρxy,z)
 
     return ρxyz, θ, ϕ
 end
@@ -108,8 +113,10 @@ function carttospherepoint(point::Array{Float64,1}, origin::Array{Float64,1}, gr
     (x,y,z) = (x-cx,y-cy,z-cz)
     ρxy = sqrt(x^2 + y^2)
     ρxyz = sqrt(x^2 + y^2 + z^2)
-    ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
+    ϕ = atan(y,x)
+    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
     ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
+    #θ = atan(ρxy,z)
 
     return ρxyz, θ, ϕ
 end
@@ -135,7 +142,7 @@ function mcoef!(box::Box, p::Int64, grid::Grid)
                 Ynm = spherical_harmonics(p, θ, ϕ)
                 ind1 = lm_to_spherical_harmonic_index(n,m)
                 ind2 = lm_to_spherical_harmonic_index(n,-m)
-                Mnm[ind1] += (q*ρ^n)*Ynm[ind2]
+                Mnm[ind1] += (-1)^m *(q*ρ^n)*Ynm[ind2]
             end
         end
     end
@@ -146,8 +153,8 @@ end # fun
 
 function lcoef!(box1::Box, box2::Box, p::Int64, grid::Grid)
     """
-    Calculates the local expansion coefficients for the potential due to
-    particles in box2 with respect to the center of box1.
+    Determine the contributions to box1's local expansion from particles in
+    box 2.
     """
     Ljk = zeros(ComplexF64,(p+1)^2)
     for j = 0:p
@@ -155,7 +162,7 @@ function lcoef!(box1::Box, box2::Box, p::Int64, grid::Grid)
             for partid in box2.particles
                 particle = grid.particles[partid]
                 q = particle[2]
-                ρ, θ, ϕ = carttosphere(partid,box1,grid)
+                ρ, θ, ϕ = carttosphere(partid,box2,grid)
                 Yjk = spherical_harmonics(p, θ, ϕ)
                 ind1 = lm_to_spherical_harmonic_index(j,k)
                 ind2 = lm_to_spherical_harmonic_index(j,-k)
@@ -164,7 +171,7 @@ function lcoef!(box1::Box, box2::Box, p::Int64, grid::Grid)
         end
     end
 
-    box1.local_coef .+= Ljk
+    box1.local_coef = Ljk
 
 end#function
 

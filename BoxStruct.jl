@@ -101,8 +101,8 @@ function particlesin(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},
     maxBound = box1.max_bound
     for partid in keys(particles)
         (x,y,z) = particles[partid][1]
-        if x <= maxBound[1] && y <= maxBound[2] && z <= maxBound[3] &&
-            x >= minBound[1] && y >= minBound[2] && z >= minBound[3]
+        if x <= maxBound[1] && y < maxBound[2] && z <= maxBound[3] &&
+            x > minBound[1] && y >= minBound[2] && z > minBound[3]
             push!(particleset,partid)
         end
     end
@@ -130,8 +130,10 @@ function spherecenter(box::Box, origin::Array{Float64,1})
     (x,y,z) = (x-cx,y-cy,z-cz)
     ρxy = sqrt(x^2 + y^2)
     ρxyz = sqrt(x^2 + y^2 + z^2)
-    ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
+    ϕ = atan(y,x)
+    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
     ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
+    #θ = atan(ρxy,z)
 
     return ρxyz, θ, ϕ
 end
@@ -149,10 +151,13 @@ function mcoeftrans(box1::Box, box2::Box, p::Int64)
     Returns a vector of multipole coefficients translated from box1 to box2.
     """
 
+    println("child center: ", box1.center)
+    println("parent center: ", box2.center)
+
     ns,ms = spherical_harmonic_indices(p)
     len = length(ns)
     Onm = box1.multipole_coef
-    ρ,α,β = spherecenter(box1,box2.center)
+    ρ,α,β = spherecenter(box1, box2.center)
     Ynm = spherical_harmonics(p,α,β)
     Mjk = zeros(ComplexF64,len)
 
@@ -208,13 +213,12 @@ function lcoeftrans(box1::Box, box2::Box, p::Int64)
     Return a vector of the local coefficients for box1 translated to the center
     of box2.
     """
-    ns,ms = spherical_harmonic_indices(p)
-    len = length(ns)
 
+    ns,ms = spherical_harmonic_indices(p)
     Onm = box1.local_coef
     ρ,α,β = spherecenter(box1, box2.center)
     Ynm = spherical_harmonics(p,α,β)
-
+    len = length(ns)
     Ljk = zeros(ComplexF64,len)
 
     for j = 0:p

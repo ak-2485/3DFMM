@@ -56,7 +56,7 @@ function L2!(box1::Box, boxdict::Dict{Int64,Box})
         allchildren = union(allchildren, box2.children)
     end
     # Collect the boxids from allchildren that are well separated from box1
-    for i in collect(allchildren)
+    for i in allchildren
         box3 = boxdict[i]
         if arewellseparated(box1,box3)
             push!(L2,box3.index)

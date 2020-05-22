@@ -54,11 +54,8 @@ function step0(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float6
         L4!(box, grid.boxes)
         box.multipole_coef = zeros(ComplexF64,lmax)
         box.local_coef = zeros(ComplexF64,lmax)
-        println("Total number of particles in box ", boxid, " is ", grid.boxes[boxid].numparticles)
     end
-    println("number of levels:", length(grid.levels))
-    println("total number of boxes:", length(grid.boxes))
-
+    println("level dict:", grid.levels)
 
     return grid
 end
@@ -108,6 +105,7 @@ function step3(grid::Grid, p::Int64)
         for l4boxid in box.L4
             l4box = grid.boxes[l4boxid]
             if length(box.particles) > p^2
+                println("num particles in L4s > p^2")
                 lcoef!(box,l4box,p,grid)
             else
                 directatpoints!(box, l4box, grid, p)
@@ -210,7 +208,7 @@ function step8(grid::Grid, p::Int64)
             for L3boxid in box.L3
                 L3box = grid.boxes[L3boxid]
                 if length(L3box.particles) > p^2
-                    prinlnt("multipoleatpoints!")
+                    println("multipoleatpoints!")
                     multipoleatpoints!(box,L3box,grid,p)
                 else
                     directatpoints!(box,L3box,grid,p)
