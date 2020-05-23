@@ -9,31 +9,32 @@ import FMM3D
 import BoxStruct
 import GridStruct
 
-
 function randomTest1()
-    println("Testing function fast mulipole: unform random distribution")
+    println("Testing function fast mulipole: uniform random distribution")
     nmax = 200
-    p = 4
+    p = 8
     num = 2000
     particles, particledict, minbound, maxbound = rndmparticledist3(num)
 
     @time begin
         ϕ = FMM3D.fastmultipole(particles,minbound,maxbound,nmax,p)
     end #time
-    println("maximum number of particles in a leaf box:", nmax)
-    println("expansion order:", p)
-    println("number of particles:", length(particles))
 
     @time begin
-        for particleid1 in keys(particledict)
-            for particleid2 in keys(particledict)
-                if particleid1 != particleid2
-                    coords,q,ψ = particledict[particleid1]
-                    coordsi = particledict[particleid2][1]
-                    qi = particledict[particleid2][2]
-                    den = norm(coords.-coordsi)
-                    vals = (coords, q, ψ + qi/den)
-                    particledict[particleid1] = vals
+        counter = 0
+        while counter < 100
+            for particleid1 in keys(particledict)
+                counter +=1
+                for particleid2 in keys(particledict)
+                    counter +=1
+                    if particleid1 != particleid2
+                        coords,q,ψ = particledict[particleid1]
+                        coordsi = particledict[particleid2][1]
+                        qi = particledict[particleid2][2]
+                        den = norm(coords.-coordsi)
+                        vals = (coords, q, ψ + qi/den)
+                        particledict[particleid1] = vals
+                    end
                 end
             end
         end
@@ -52,7 +53,7 @@ function randomTest1()
 
 end #randtest1
 
-#randomTest1()
+randomTest1()
 
 function uniformgridTest()
 
@@ -60,10 +61,7 @@ function uniformgridTest()
 
     println("Testing function fast mulipole: Uniform grid")
     nmax = 10000
-    p = 6
-    println("maximum number of particles in a leaf box:", nmax)
-    println("expansion order:", p)
-    println("number of particles:", length(particles))
+    p = 10
 
     @time begin
         ϕ = FMM3D.fastmultipole(particles,minbound,maxbound,nmax,p)
@@ -71,7 +69,7 @@ function uniformgridTest()
 
     @time begin
         counter = 0
-        while counter < 500
+        while counter < 100
             for particleid1 in keys(particledict)
                 counter +=1
                 for particleid2 in keys(particledict)
@@ -109,11 +107,8 @@ function uniformgridsmallTest()
     particles, particledict, minbound, maxbound = particledist1ex()
 
     println("Testing function fast mulipole: Uniform grid")
-    nmax = 30
-    p = 6
-    println("maximum number of particles in a leaf box:", nmax)
-    println("expansion order:", p)
-    println("number of particles:", length(particles))
+    nmax = 50
+    p = 10
 
     @time begin
         ϕ = FMM3D.fastmultipole(particles,minbound,maxbound,nmax,p)
@@ -152,4 +147,4 @@ function uniformgridsmallTest()
 
 end #test2
 
-uniformgridsmallTest()
+#uniformgridsmallTest()

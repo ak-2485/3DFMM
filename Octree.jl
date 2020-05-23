@@ -23,7 +23,7 @@ function Octree(points::Dict{Int64,Tuple{Float64,Float64,Float64}},
             nmin : boxes with fewer than nmin particles won't be refined.
         preconditions:
             bounds: a non-empty array of 2 non-empty arrays
-            nmin: must be greater than 1 for recursion to halt 
+            nmin: must be greater than 1 for recursion to halt
         returns:
             levelDict : A dictionary with level number as key and box index as value
             treeDict : A dictionary with box index as key and box as value

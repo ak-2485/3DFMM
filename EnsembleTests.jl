@@ -30,7 +30,24 @@ function clusterdist()
     minbound = [-10.0,-10.0,-10.0]
     maxbound = [10.0,10.0,10.0]
 
-    return particles, minbound, maxbound
+    particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Float64}}()
+    particles = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}()
+
+    sz=length(coordsx)
+    coords = zeros(sz,3)
+    coords[:,1] = coordsx
+    coords[:,2] = coordsy
+    coords[:,3] = coordsz
+
+    for i = 1:sz
+        x,y,z = coords[i,:]
+        coord = (x,y,z)
+        q = 0.25*(-1)^i *(x+y)*z
+        particledict[i] = (coord,q,0.0)
+        particles[i] = (coord,q)
+    end
+
+    return particles, particledict, minbound, maxbound
 end
 
 function particledist1ex()
@@ -128,10 +145,10 @@ end
 function rndmparticledist3(num::Int64)
     """
     """
-    minbound = [-0.5,-0.5,-0.5]
-    maxbound = [0.5,0.5,0.5]
+    minbound = [-10.0,-10.0,-10.0]
+    maxbound = [10.0,10.0,10.0]
 
-    coords = rand(Uniform(-0.5,0.5), num,3)
+    coords = rand(Uniform(-9.99,9.99), num,3)
     sz=size(coords)[1]
 
     particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Float64}}()
@@ -139,12 +156,12 @@ function rndmparticledist3(num::Int64)
     for i = 1:sz
         x,y,z = coords[i,:]
         coord = (x,y,z)
-        q = rand(-5:0.1:5)
+        q = rand(-2:0.2:2)
         particledict[i] = (coord,q,0.0)
         particles[i] = (coord,q)
     end
 
-    return particles, minbound, maxbound
+    return particles, particledict, minbound, maxbound
 end
 
 end #module

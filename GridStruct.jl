@@ -1,6 +1,3 @@
-
-"""
-"""
 module GridStruct
 
 using BoxStruct
@@ -139,10 +136,8 @@ function mcoef!(box::Box, p::Int64, grid::Grid)
                 particle = grid.particles[partid]
                 q = particle[2]
                 ρ, θ, ϕ = carttosphere(partid,box,grid)
-                Ynm = spherical_harmonics(p, θ, ϕ)
                 ind1 = lm_to_spherical_harmonic_index(n,m)
-                ind2 = lm_to_spherical_harmonic_index(n,-m)
-                Mnm[ind1] += (-1)^m *(q*ρ^n)*Ynm[ind2]
+                Mnm[ind1] += (-1)^n * q * Inm(n,m,p,ρ,θ,ϕ)
             end
         end
     end
@@ -162,11 +157,9 @@ function lcoef!(box1::Box, box2::Box, p::Int64, grid::Grid)
             for partid in box2.particles
                 particle = grid.particles[partid]
                 q = particle[2]
-                ρ, θ, ϕ = carttosphere(partid,box2,grid)
-                Yjk = spherical_harmonics(p, θ, ϕ)
+                ρ, θ, ϕ = sphcoords(partid,grid)
                 ind1 = lm_to_spherical_harmonic_index(j,k)
-                ind2 = lm_to_spherical_harmonic_index(j,-k)
-                Ljk[ind1] += (q/ρ^(j+1))*Yjk[ind2]
+                Ljk[ind1] += q * Onm(j,-k,p,ρ,θ,ϕ)
             end
         end
     end
@@ -188,7 +181,7 @@ function localatpoints!(box::Box, grid::Grid, p::Int64)
         for j = 0:p
             for k = -j:j
                 ind1 = lm_to_spherical_harmonic_index(j,k)
-                ψ += Ljk[ind1] * Yjk[ind1] * ρ^j
+                ψ += Ljk[ind1] * Inm(j,k,p,ρ, θ, ϕ)
             end
         end
         coords,q,pot = grid.particles[particleid]
@@ -229,12 +222,12 @@ function multipoleatpoints!(box1::Box, box2::Box, grid::Grid, p::Int64)
     Mnm = box2.multipole_coef
     for particleid in box1.particles
         ψ = 0
-        ρ, θ, ϕ = carttosphere(particleid, box1, grid)
+        ρ, θ, ϕ = carttosphere(particleid, box2, grid)
         Ynm = spherical_harmonics(p, θ, ϕ)
         for n = 0:p
             for m = -n:n
                 ind1 = lm_to_spherical_harmonic_index(m,n)
-                ψ += Mnm[ind1] * Ynm[ind1] * ρ^-(n+1)
+                ψ += Mnm[ind1] * Onm(j,-k,p,ρ, θ, ϕ)
             end
         end
         coords,q,pot = grid.particles[particleid]

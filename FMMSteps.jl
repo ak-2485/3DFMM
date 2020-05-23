@@ -1,4 +1,3 @@
-
 """
 """
 module FMMSteps
@@ -55,7 +54,6 @@ function step0(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float6
         box.multipole_coef = zeros(ComplexF64,lmax)
         box.local_coef = zeros(ComplexF64,lmax)
     end
-    println("level dict:", grid.levels)
 
     return grid
 end

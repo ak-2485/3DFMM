@@ -11,6 +11,11 @@ function fastmultipole(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64
      """
      """
      grid = step0(particles,minbound,maxbound,nmax,p)
+     println("maximum number of particles in a leaf box:", nmax)
+     println("expansion order:", p)
+     println("number of particles:", length(particles))
+     println("number of levels: ", length(grid.levels))
+     println("number of boxes: ", length(grid.boxes))
      step1(grid,p)
      step2(grid,p)
      step3(grid,p)

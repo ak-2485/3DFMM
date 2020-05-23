@@ -1,4 +1,3 @@
-
 """
 """
 module BoxStruct
@@ -138,38 +137,24 @@ function spherecenter(box::Box, origin::Array{Float64,1})
     return ρxyz, θ, ϕ
 end
 
-function anms(n::Int64,m::Int64)
-    """
-    """
-    den = sqrt(factorial(big(n-m))*factorial(big(n+m)))
-
-    return 1/den
-end
-
 function mcoeftrans(box1::Box, box2::Box, p::Int64)
     """
     Returns a vector of multipole coefficients translated from box1 to box2.
     """
 
-    println("child center: ", box1.center)
-    println("parent center: ", box2.center)
-
-    ns,ms = spherical_harmonic_indices(p)
-    len = length(ns)
-    Onm = box1.multipole_coef
-    ρ,α,β = spherecenter(box1, box2.center)
-    Ynm = spherical_harmonics(p,α,β)
-    Mjk = zeros(ComplexF64,len)
+    Mnm = box1.multipole_coef
+    ρ,α,β = spherecenter(box2, box1.center)
+    Mjk = zeros(ComplexF64,length(Mnm))
 
     for j = 0:p
         for k = -j:j
-            ind = lm_to_spherical_harmonic_index(j,k)
+            ind1 = lm_to_spherical_harmonic_index(j,k)
             for n = 0:j
-                for m = max(k+n-j,-n):min(k+j-n,n)
-                    ind2 = lm_to_spherical_harmonic_index(j-n,k-m)
-                    ind3 = lm_to_spherical_harmonic_index(n,-m)
-                    num = Onm[ind2] * (-1)^m * anms(n,m) * anms(j-n,k-m) * ρ^n * Ynm[ind3]
-                    Mjk[ind] += num/anms(j,k)
+                for m = -n:n
+                    if abs(k-m) <= j-n
+                        ind2 = lm_to_spherical_harmonic_index(n,m)
+                        Mjk[ind1] += Mnm[ind2] * Inm(j-n,k-m,p,ρ,α,β)
+                    end
                 end#ms
             end#ns
         end#ks
@@ -183,11 +168,9 @@ function mtolconversion(box1::Box, box2::Box, p::Int64)
     Return a vector of the multipole coefficients of box1 converted to local
     coefficients centered at box2.
     """
-    Onm = box1.multipole_coef
-    ρ,α,β = spherecenter(box1, box2.center)
-    Ynm = spherical_harmonics(2p,α,β)
-
-    Ljk = zeros(ComplexF64,(p+1)^2)
+    Mnm = box1.multipole_coef
+    ρ,α,β = spherecenter(box2, box1.center)
+    Ljk = zeros(ComplexF64,length(Mnm))
 
     for j = 0:p
         for k = -j:j
@@ -195,10 +178,7 @@ function mtolconversion(box1::Box, box2::Box, p::Int64)
             for n = 0:p
                 for m = -n:n
                     ind1 = lm_to_spherical_harmonic_index(n,m)
-                    ind2 = lm_to_spherical_harmonic_index(j+n,m-k)
-                    num = Onm[ind1] * (-1)^(n+k) * anms(n,m) * anms(j,k) * Ynm[ind2]
-                    den = anms(j+n,m-k) * ρ^(j+n+1)
-                    Ljk[ind] += num/den
+                    Ljk[ind] += Mnm[ind1] * Onm(j+n,-k-m,2p,ρ,α,β)
                 end#ms
             end#ns
         end#ks
@@ -213,24 +193,20 @@ function lcoeftrans(box1::Box, box2::Box, p::Int64)
     Return a vector of the local coefficients for box1 translated to the center
     of box2.
     """
-
-    ns,ms = spherical_harmonic_indices(p)
-    Onm = box1.local_coef
-    ρ,α,β = spherecenter(box1, box2.center)
+    Lnm = box1.local_coef
+    ρ,α,β = spherecenter(box2, box1.center)
     Ynm = spherical_harmonics(p,α,β)
-    len = length(ns)
-    Ljk = zeros(ComplexF64,len)
+    Ljk = zeros(ComplexF64,length(Lnm))
 
     for j = 0:p
         for k = -j:j
             ind = lm_to_spherical_harmonic_index(j,k)
             for n = j:p
-                for m = k-n+j:k-j+n
-                    ind1 = lm_to_spherical_harmonic_index(n-j,m-k)
-                    ind2 = lm_to_spherical_harmonic_index(n,m)
-                    num = Onm[ind2] * (-1)^(n-j) * anms(j,k) * anms(n-j,m-k) * ρ^(n-j) * Ynm[ind1]
-                    den = anms(n,m)
-                    Ljk[ind] += num/den
+                for m = -n:n
+                    if abs(m-k) <= n-j
+                        ind2 = lm_to_spherical_harmonic_index(n,m)
+                        Ljk[ind] += Lnm[ind2] * Inm(n-j,m-k,p,ρ,α,β)
+                    end
                 end#ms
             end#ns
         end#ks

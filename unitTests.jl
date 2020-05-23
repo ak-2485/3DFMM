@@ -134,7 +134,7 @@ end
 
 function fmmTest()
 
-    particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Float64}}()
+    particledict = Dict{Int64,Tuple{Tuple{Float32,Float32,Float32},Float32,Float32}}()
     for (key,value) in particles
         coords = value[1]
         q = value[2]
@@ -188,8 +188,8 @@ println("numparticles:", num)
 coords = rand(Uniform(-0.5,0.5), num,3)
 sz=size(coords)[1]
 
-particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Float64}}()
-particles = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}()
+particledict = Dict{Int64,Tuple{Tuple{Float32,Float32,Float32},Float32,Float32}}()
+particles = Dict{Int64,Tuple{Tuple{Float32,Float32,Float32},Float32}}()
 for i = 1:sz
     x,y,z = coords[i,:]
     coord = (x,y,z)
@@ -251,8 +251,8 @@ coords[:,1] = coordsx
 coords[:,2] = coordsy
 coords[:,3] = coordsz
 
-particledict = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Float64}}()
-particles = Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}}()
+particledict = Dict{Int64,Tuple{Tuple{Float32,Float32,Float32},Float32,Float32}}()
+particles = Dict{Int64,Tuple{Tuple{Float32,Float32,Float32},Float32}}()
 for i = 1:sz
     x,y,z = coords[i,:]
     coord = (x,y,z)

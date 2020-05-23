@@ -3,8 +3,8 @@ module CoefHelpers
 
 using GSL
 
-export spherical_harmonics, spherical_harmonic_indices, spherical_harmonics_theta
-export lm_to_spherical_harmonic_index, lmk_to_wigner_index
+export spherical_harmonics, spherical_harmonic_indices
+export lm_to_spherical_harmonic_index, anms, Inm, Onm
 """
 """
 # https://github.com/JuliaWaveScattering/EffectiveWaves.jl/blob/master/src/specialfunctions.jl
@@ -36,7 +36,6 @@ function spherical_harmonics(l_max::Int, θ::T, φ::T) where T <: AbstractFloat
     ls, ms = associated_legendre_indices(l_max)
     factor = sqrt(4*pi) .* (((2 .*ls) .+ 1).^(-0.5))
     Plm_arr = factor .* sf_legendre_array(GSL_SF_LEGENDRE_SPHARM, l_max, cos(θ))[1:length(ls)]
-    println(Plm_arr)
 
     Ylm_vec = Vector{Complex{T}}(undef, (l_max+1)^2)
     Ylm_vec[1] = Plm_arr[1]
@@ -45,9 +44,6 @@ function spherical_harmonics(l_max::Int, θ::T, φ::T) where T <: AbstractFloat
     ind2 = 1
     for i = 1:l_max
         inds1 = (ind1+i):(ind1+2i)
-        println(inds1)
-        println(ms)
-        println(ms[inds1])
         Ylm_vec[(ind2+i):(ind2+3i)] =
         [reverse(conj(Plm_arr[inds1[2:end]])); Plm_arr[inds1]]
         ind1 += i
@@ -55,9 +51,39 @@ function spherical_harmonics(l_max::Int, θ::T, φ::T) where T <: AbstractFloat
     end
 
     ls, ms = spherical_harmonic_indices(l_max)
-    Ylm_vec = exp.(ms .* (im*abs(φ))) .* Ylm_vec
+    Ylm_vec = exp.(ms .* (im*φ)) .* Ylm_vec
 
     return Ylm_vec
+end
+
+function anms(n::Int64,m::Int64)
+    """
+    """
+    den = sqrt(factorial(big(n-m))*factorial(big(n+m)))
+
+    return (-1)^n/den
+end
+
+function Inm(n::Int64,m::Int64,p::Int64,ρ::Float64,θ::Float64,ϕ::Float64)
+    """
+    """
+    Ynm = spherical_harmonics(p,θ,ϕ)
+    ind = lm_to_spherical_harmonic_index(n,m)
+
+    return im^float(-abs(m))*anms(n,m)*Ynm[ind]*ρ^n
+
+end
+
+function Onm(n::Int64,m::Int64,p::Int64,ρ::Float64,θ::Float64,ϕ::Float64)
+    """
+    """
+    Ynm = spherical_harmonics(p,θ,ϕ)
+    ind = lm_to_spherical_harmonic_index(n,m)
+    num = ((-1)^n)*im^float(abs(m))*Ynm[ind]
+    den = anms(n,m)*ρ^(n+1)
+
+    return num/den
+
 end
 
 function wigner_matrices_indices(lmax::Int)
@@ -88,13 +114,13 @@ function wigner_matrices(lmax::Int, θ::T) where T <: AbstractFloat
     len = length(ls)
     inds1 = 1:len
 
-    blm_vec = Vector{Complex{Float32}}(undef, len)
+    blm_vec = Vector{Complex{Float64}}(undef, len)
     num = (ls[inds1] .- ms[inds1] .- 1)*(ls[inds1] .- ms[inds1])
     den = (2ls[inds1] .- 1)*(2ls[inds1] .+ 1)
     bsqrtlsms = (num./den).^0.5
     blm_vec[inds1] = sgn(ms[inds1]) .* bsqrtlsms
 
-    alm_vec = Vector{Complex{Float32}}(undef, len)
+    alm_vec = Vector{Complex{Float64}}(undef, len)
     for i = inds1
         l = ls[i]
         m = ms[i]
@@ -113,7 +139,7 @@ function wigner_matrices(lmax::Int, θ::T) where T <: AbstractFloat
     ls, ks, ms = wigner_matrices_indices(2lmax)
     len = length(ls)
 
-    Hlkm_vec = Vector{Complex{Float32}}(undef, len)
+    Hlkm_vec = Vector{Complex{Float64}}(undef, len)
     for i = 1:len
         if ms[i] == 0
             ind1 = lkm_to_wigner_index(ls[i],ks[i],ms[i])
