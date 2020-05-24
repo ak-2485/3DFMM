@@ -1,3 +1,6 @@
+"""
+Tests for the list constrctors and spherical harmonics of the 3D FMM. 
+"""
 using Test
 using LinearAlgebra
 using CoefHelpers

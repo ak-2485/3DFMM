@@ -1,13 +1,12 @@
-
 """
+Due to compile time for Plots, plotting for test ensembles is kept separate
+from the test themselves.
 """
-module PlotGrid
 
 using GridStruct
 using BoxStruct
 using Plots
-
-export plotgrid
+using EnsembleTests
 
 function plotgrid(grid::Grid)
     xs = zeros(8,1)
@@ -24,7 +23,7 @@ function plotgrid(grid::Grid)
                 ys[i] = v[i][2]
                 zs[i] = v[i][3]
             end
-            plt = plot!([xs[2],xs[1]],[ys[2],ys[1]],[zs[2],zs[1]],legend = false)
+            plt = plot!([xs[2],xs[1]],[ys[2],ys[1]],[zs[2],zs[1]],legend = false, axis=nothing, foreground_color_subplot=colorant"white")
             plot!([xs[2],xs[8]],[ys[2],ys[8]],[zs[2],zs[8]])
             plot!([xs[2],xs[4]],[ys[2],ys[4]],[zs[2],zs[4]])
 
@@ -46,6 +45,7 @@ function plotgrid(grid::Grid)
     coordsx = zeros(length(grid.particles))
     coordsy = zeros(length(grid.particles))
     coordsz = zeros(length(grid.particles))
+    i = 1
     for (partid,vals) in grid.particles
         (x,y,z) = vals[1]
         coordsx[i] = x
@@ -53,9 +53,13 @@ function plotgrid(grid::Grid)
         coordsz[i] = z
         i += 1
     end
-    scatter!(coordsx, coordsy, coordsz)
+    scatter!(coordsx, coordsy, coordsz, axis=nothing)
     if flag == true display(plt) end
 
-    end
+end #function
 
-end #module
+particles, _ ,minbound,maxbound = particledist2()
+nmax = 10
+p = 4
+grid = step0(particles,minbound,maxbound,nmax)
+plotgrid(grid)

@@ -1,4 +1,5 @@
 """
+Box structures for the 3D FMM and FMM functions on boxes.
 """
 module BoxStruct
 
@@ -20,12 +21,12 @@ mutable struct Box
     vertices::Array{Array{Float64,1},2}
     min_bound::Array{Float64,1}
     max_bound::Array{Float64,1}
-    level::Int
-    index::Int
-    parent::Int
+    level::Int64
+    index::Int64
+    parent::Int64
     children::Set{Int64}
     particles::Set{Int64}
-    numparticles::Int
+    numparticles::Int64
     colleagues::Set{Int64}
     L1::Set{Int64}
     L2::Set{Int64}
@@ -59,6 +60,7 @@ end
 
 function iscolleague(box1::Box, box2::Box)
     """
+    returns true if box2 is a colleague of box 1. 
     """
     # Colleagues are on the same level and share a vertex
     A = Set(box1.vertices)
@@ -76,6 +78,7 @@ end
 
 function areadjacent(box1::Box, box2::Box)
     """
+    Returns true if box2 is adjacent to box1
     """
     # https://stackoverflow.com/questions/5009526/overlapping-cubes
     A = Set(box1.vertices)
@@ -94,14 +97,16 @@ end
 function particlesin(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}},
         box1::Box)
         """
+        Returns the set of integer ids of the particles in the grid dictionary of particles
+        that are in the bounds of box1.
         """
     particleset = Set{Int}()
     minBound = box1.min_bound
     maxBound = box1.max_bound
     for partid in keys(particles)
         (x,y,z) = particles[partid][1]
-        if x <= maxBound[1] && y < maxBound[2] && z <= maxBound[3] &&
-            x > minBound[1] && y >= minBound[2] && z > minBound[3]
+        if x < maxBound[1] && y < maxBound[2] && z < maxBound[3] &&
+            x >= minBound[1] && y >= minBound[2] && z >= minBound[3]
             push!(particleset,partid)
         end
     end

@@ -1,4 +1,5 @@
 """
+Compose the steps of the FMM.
 """
 module FMM3D
 

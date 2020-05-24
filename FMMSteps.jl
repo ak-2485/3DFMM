@@ -1,4 +1,6 @@
 """
+Steps 1-8 of the adaptive 3D FMM as presented in Cheng, Greengard, and Rokhlin
+1999: "A Fast Adaptive Multipole Algorithm in Three Dimensions."
 """
 module FMMSteps
 
@@ -13,15 +15,13 @@ export step0, step1, step2, step3, step4, step5, step6, step7, step8
 function step0(particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64}},
     minbound::Array{Float64,1}, maxbound::Array{Float64,1},nmax::Int64,p::Int64)
     """
-    Build Tree Structure and create Lists
+    Build Tree Structure and populate box attributes
 
-    input: particles as dictionary
+    input: particles as dictionary, minbound and maxbound of the computational
+    domain, the maximum number of particles in a leaf box.
 
-    preconditions:
-
-    returns: an adaptive grid for computing the potential due to all particles
-    in the dictionary.
-
+    returns: an adaptive grid for computing the potential for each particle
+    in the particle dictionary.
     """
     grid = Grid()
     grid.nmax = nmax

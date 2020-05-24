@@ -1,34 +1,18 @@
-
 """
-
+Recursive functions for bulding the adaptive grid.
 """
 module OctreeConstructor
 
 using DataStructures
 using GridStruct
 using BoxStruct
-using TreeHelpers
 
 export octree
 
 function octree(Grid::Grid)
         """
-        Build Tree Structure by refining the domain adaptively on boxes that contain
+        Build Tree Structure by refining the input domain adaptively on boxes that contain
         more than nmax particles.
-        input:
-            points: a dictinoary of particles in the domain with particle
-                index, numbered (1...total-number-of-particles),
-                 as key and particle location and strength as value.
-            bounds: bounds of the computational domain, the first array index
-                is the least vertex point of the domain, the second array index
-                is the greatest vertex point of the domain.
-            nmax : boxes with fewer than nmax particles won't be refined.
-        preconditions:
-            bounds: a non-empty array of 2 non-empty arrays
-            nmax: must be greater than 1 for recursion to halt
-        returns:
-            leveldict : A dictionary with level number as key and box index as value
-            boxdict : A dictionary with box index as key and box as value
     """
     # keep track of the total number of box indices in order to set
     # new box indices
@@ -58,9 +42,8 @@ function octree(Grid::Grid)
     # Recursively divide the box is it contains more than nmax particles
     function octreedivide(Parent::Box)
         """
-
-        input:
-        returns : none
+        recursively divides a parent box into a maximum of 8 child boxes,
+        empty chidren are pruned.
         """
         # If the refinement condition has been met, exit
         if Parent.numparticles <= Grid.nmax return end

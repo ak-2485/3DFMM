@@ -1,17 +1,19 @@
+"""
+An adaptive grid structure for the 3D FMM and FMM functions that rely on the
+underlying grid structure.
+"""
 module GridStruct
 
 using BoxStruct
 using CoefHelpers
 using LinearAlgebra
 
-export Grid, carttosphere, mcoef!, lcoef!, sphcoords, carttospherepoint
-export localatpoints!, directatpoints!, multipoleatpoints!
+export Grid, carttosphere, sphcoords, colleagues!
+export mcoef!, lcoef!, localatpoints!, directatpoints!, multipoleatpoints!
 
 mutable struct Grid
     """
-    Represents a box in the 3D FMM.
-
-    fields:
+    Represents a grid in the 3D FMM.
     """
     boxes::Dict{Int64,Box}
     particles::Dict{Int64,Tuple{Tuple{Float64,Float64,Float64},Float64,Complex{Float64}}}
@@ -48,6 +50,8 @@ end
 
 function sphcoords(particleid::Int64, grid::Grid)
     """
+    Yields the spherical coordinates for a particle
+    with respect to the origin as [0.0,0.0,0.0].
     """
 
     particle = grid.particles[particleid]
@@ -68,9 +72,7 @@ function carttosphere(particleid::Int64, box1::Box, grid::Grid)
     Yields the spherical coordinates for a particle
     with respect to the center of box1.
 
-    inputs:
-
-    preconditions: particleid is a key in particles.
+    preconditions: particleid is a key in grid dictionary of particles.
     returns: a triple of the spherical coordinates of the particles with
         respect to the center of box1.
     """
@@ -84,46 +86,33 @@ function carttosphere(particleid::Int64, box1::Box, grid::Grid)
     ρxy = sqrt(x^2 + y^2)
     ρxyz = sqrt(x^2 + y^2 + z^2)
     ϕ = atan(y,x)
-    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
     ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
-    #θ = atan(ρxy,z)
 
     return ρxyz, θ, ϕ
 end
 
-function carttospherepoint(point::Array{Float64,1}, origin::Array{Float64,1}, grid::Grid)
+function colleagues!(box1::Box, leveldict::Dict{Int64,Set{Int64}},
+    boxdict::Dict{Int64,Box})
     """
-    Yields the spherical coordinates for a point
-    with respect to the center of box1.
-
-    inputs:
-
-    preconditions: particleid is a key in particles.
-    returns: a triple of the spherical coordinates of the particles with
-        respect to the center of box1.
+    Populate the colleagues of box1. 
     """
-    # the center of the box
-    cx = origin[1]
-    cy = origin[2]
-    cz = origin[3]
-    (x,y,z) = point
-    (x,y,z) = (x-cx,y-cy,z-cz)
-    ρxy = sqrt(x^2 + y^2)
-    ρxyz = sqrt(x^2 + y^2 + z^2)
-    ϕ = atan(y,x)
-    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
-    ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
-    #θ = atan(ρxy,z)
-
-    return ρxyz, θ, ϕ
-end
+    level = box1.level
+    # set of box ids on box1's level
+    boxids = leveldict[level]
+    for boxid in boxids
+        box2 = boxdict[boxid]
+        if iscolleague(box1,box2)
+            push!(box1.colleagues,box2.index)
+            push!(box2.colleagues,box1.index)
+        end
+    end
+end #function
 
 function mcoef!(box::Box, p::Int64, grid::Grid)
     """
     Find the multipole expansion coefficients Mnm for a given box, about its center, where
         M_n^m =
         sum_i=1^numparticles [q_i * r_i^n * Y_n^-m(theta_i,phi_i)]
-
     inputs:
     returns: A vector of the coefficints M_nm for a given box. E.g.
         [M_0^0 M_1^-1 M_1^0  M_1^1... M_p^p]

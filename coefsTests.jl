@@ -1,4 +1,6 @@
-
+"""
+Tests for the M2L and L2L operators of the 3D FMM. 
+"""
 using Test
 using LinearAlgebra
 using CoefHelpers
@@ -16,7 +18,7 @@ function mtomTest4()
     children.
     """
     println("Testing m2m: parent <--- children")
-    particles, minbound, maxbound = particledist1()
+    particles,_, minbound, maxbound = particledist1()
     p = 10
     println("p = ", p)
     nmax = length(particles)
@@ -72,8 +74,6 @@ function ltolTest1()
     Ljk = lcoeftrans(parent, child, p)
     # set the local coefs of the child due to colleague
     lcoef!(child,colparent,p,grid)
-    println(Ljk)
-    println(child.local_coef)
 
     num = 0
     den = 0
