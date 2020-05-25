@@ -60,7 +60,7 @@ end
 
 function iscolleague(box1::Box, box2::Box)
     """
-    returns true if box2 is a colleague of box 1. 
+    returns true if box2 is a colleague of box1. 
     """
     # Colleagues are on the same level and share a vertex
     A = Set(box1.vertices)

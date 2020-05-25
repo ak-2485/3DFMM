@@ -28,17 +28,14 @@ function clusterdist()
     return particles, particledict, minbound, maxbound
 end
 
-function particledist1()
+function particledist1(a::Float64,b::Float64,c::Float64,d::Float64)
     """
     """
-    a = 2.0
-    b = 2.0
-    c = 2.0
+
     coordsx = [x for x in -19.5:a:19.5 for y in -19.5:b:19.5 for z in -19.5:c:19.5]
     coordsy = [y for x in -19.5:a:19.5 for y in -19.5:b:19.5 for z in -19.5:c:19.5]
     coordsz = [z for x in -19.5:a:19.5 for y in -19.5:b:19.5 for z in -19.5:c:19.5]
 
-    d = 20.0
     minbound = [-d,-d,-d]
     maxbound = [d,d,d]
 
@@ -62,10 +59,9 @@ function particledist1()
     return particles, particledict, minbound, maxbound
 end
 
-function rndmparticledist3(num::Int64)
+function rndmparticledist3(num::Int64,d::Float64)
     """
     """
-    d = 10.0
     minbound = [-d,-d,-d]
     maxbound = [d,d,d]
 
