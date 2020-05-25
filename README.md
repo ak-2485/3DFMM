@@ -4,7 +4,7 @@ A Julia implementation of the adaptive 3D FMM described in *A Fast Adaptive Mult
 in Three Dimensions* by Cheng, Greengard,and Rokhlin (1999), without the improvements to the translation and 
 conversion operators. 
 
-## Dependecies
+## Dependencies
 
 In order to run a test, you will need the Julia packages GSL (for constructing the spherical harmonics) and LinearAlgebra. 
 
