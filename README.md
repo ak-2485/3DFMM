@@ -21,7 +21,7 @@ Then, to apply the FMM to the distribution with the maximum number of particles 
 
 ```
 using FMMTests
-ϕ = fastmultipole(particles,minbound,maxbound,nmax,p)
+ϕ = fastmultipole(particles,minbound,maxbound,nmax::Int,p::Int)
 ```
 
 ## Tests
@@ -30,5 +30,5 @@ You can run a test on the timing and accuracy of the implementation on a uniform
 
 ```
 import FMMTests
-FMMTests.uniformTest(num,nmax,p,d)
+FMMTests.uniformTest(num::Int,nmax::Int,p::Int,d::Float)
 ```
