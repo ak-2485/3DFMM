@@ -60,9 +60,9 @@ end
 
 function iscolleague(box1::Box, box2::Box)
     """
-    returns true if box2 is a colleague of box1. 
+    returns true if box2 is a colleague of box1. Colleagues are on the same
+    level and share a vertex.
     """
-    # Colleagues are on the same level and share a vertex
     A = Set(box1.vertices)
     B = Set(box2.vertices)
     return box1.level == box2.level && !isempty(intersect(A,B))
@@ -70,9 +70,9 @@ end
 
 function arewellseparated(box1::Box, box2::Box)
     """
+    Returns true if box1 and box2 are well separated: they are on the same level
+    and aren't colleagues (i.e. they don't share a vertex).
     """
-    # Well separated boxes are on the same level and aren't colleagues
-    # i.e. they don't share a vertex
     return box1.level == box2.level && !iscolleague(box1,box2)
 end
 
@@ -80,7 +80,6 @@ function areadjacent(box1::Box, box2::Box)
     """
     Returns true if box2 is adjacent to box1
     """
-    # https://stackoverflow.com/questions/5009526/overlapping-cubes
     A = Set(box1.vertices)
     B = Set(box2.vertices)
     if !isempty(intersect(A,B)) return true end
@@ -135,9 +134,7 @@ function spherecenter(box::Box, origin::Array{Float64,1})
     ρxy = sqrt(x^2 + y^2)
     ρxyz = sqrt(x^2 + y^2 + z^2)
     ϕ = atan(y,x)
-    #ρxy < 1e-6 ? ϕ = 0.0 : ϕ = acos(x/ρxy)
     ρxyz < 1e-6 ? θ = pi/2 : θ = acos(z/ρxyz)
-    #θ = atan(ρxy,z)
 
     return ρxyz, θ, ϕ
 end
